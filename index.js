@@ -39,7 +39,7 @@ let exerciseSchema = new mongoose.Schema({
   username:     String,
   description:  String,
   duration:     Number,
-  date:         String
+  date:         Date
 });
 
 let Exercise = new mongoose.model('Exercise', exerciseSchema);
@@ -150,10 +150,17 @@ app.post('/api/users/:_id/exercises', function(req, res) {
               //done(null , data);
 
               //Prepare returning OBJECT:
-              data._id = id; // change for User._id (not Exercise._id)
-              data.__v = undefined; //delete
+              let rs = {
+                username     : data.username,
+                description  : data.description,
+                duration     : data.duration,
+                date         : dt,
+                _id          : id
+              };
+              //rs._id = id; // change for User._id (not Exercise._id)
+              //rs.__v = undefined; //delete
               
-              return res.send(data);
+              return res.send(rs);
             });
 
         }
@@ -164,11 +171,17 @@ app.post('/api/users/:_id/exercises', function(req, res) {
 
 //Logs
 app.get('/api/users/:_id/logs', function(req, res){
-  let id  = req.params._id; //route parameter for user
-  let rs  = {};
+  let id  = req.params._id; //route parameter for user, required
+
+  //optionals
+  let from   = new Date(req.query.from);
+  let to     = new Date(req.query.to);
+  let limit  = Number(req.query.limit);
+  
+  let rs  = {}; //result
 
   console.log(' ');
-  console.log('@GET /api/users/:_id/logs ~ _id='+id);
+  console.log('@GET /api/users/:_id/logs ~ _id='+id+', from='+from+', to='+to+', limit='+limit);
   
   User.find({"_id": id}, function (err, found) {
     if (err) {
@@ -181,15 +194,39 @@ app.get('/api/users/:_id/logs', function(req, res){
         "_id": id 
       };
       console.log(rs);
+
+      let query = {"username" : found[0]["username"]};
+
+      if ( (from!='Invalid Date' && from instanceof Date && !isNaN(from)) &&
+           (to!='Invalid Date' && to instanceof Date && !isNaN(from)) ) {
+        query["date"] = {$gte: from, $lte: to};
+      }
+
+      if ( isNaN(limit) || limit==undefined ) limit=0;
+
+      console.log('query: '+JSON.stringify(query));
       
       Exercise.find(
-        {"username" : found[0]["username"]}, 
+        query, 
         {description:1, duration:1, date:1, _id:0},
+        {sort: {'date': -1}, limit: limit },
+        
         function(err, f) {
             if (err) return console.log(err);
             
             rs["count"] = f.length;
-            rs["log"] = f;
+
+            //Transforming dates to required format, one to one, ineffienct, but fast to implement, low count con rows allow this... more volume may cause problems..
+            let f2 = [];
+            for (let i in f) {
+              let a={
+                "description": f[i]["description"],
+                "duration": f[i]["duration"],
+                "date": ((new Date(f[i]["date"])).toDateString())
+              };
+              f2.push(a); 
+            }
+            rs["log"] = f2;
     
             console.log(rs);
             return res.send(rs);
