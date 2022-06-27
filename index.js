@@ -39,7 +39,7 @@ let exerciseSchema = new mongoose.Schema({
   username:     String,
   description:  String,
   duration:     Number,
-  date:         Date
+  date:         String
 });
 
 let Exercise = new mongoose.model('Exercise', exerciseSchema);
@@ -71,6 +71,7 @@ let Log = new mongoose.model('Log', logSchema);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+//Users
 app.post('/api/users', function(req, res) {
   let un = req.body.username;
   console.log('@ POST /api/users:: username='+un);
@@ -95,7 +96,61 @@ app.get('/api/users', function(req, res){
   });
 });
 
+app.get('/api/users/:_id', function(req, res){
+  let id  = req.params._id; //route parameter for user
+  
+  User.find({"_id": id}, function (err, found) {
+    if (err) return console.log(err);
+    return res.send(found);
+  });
+});
 
+//Exercises
+app.post('/api/users/:_id/exercises', function(req, res) {
+  let des = req.body.description;
+  let dur = req.body.duration;
+  let dt  = req.body.date; //optional
+  let id  = req.params._id; //route parameter for user
+  let un; //username
+
+  if (dt==undefined || dt=='') dt=(new Date).toDateString();
+
+  //resolving username from _id
+    User.findOne( {"_id": id}, function (err, found) {
+      console.log('--username: found='+found);
+      if (err) {return console.log(err);}
+      
+        un = found["username"];
+
+        console.log(' ');
+        console.log('@ POST /api/users/:_id/exercises:: description='+des+", duration="+dur+", _id="+id+", username="+un+", (date)="+dt);
+      
+        if (un == undefined) {
+          console.log('!! Usename NOT Found from _id='+id);
+        //console.log(req);
+        } else {
+      
+            let exe = new Exercise({
+                username:     un,
+                description:  des,
+                duration:     Number(dur),
+                date:         dt
+            });
+          
+            console.log(exe);
+            exe.save(function(err, data) {
+              console.log("save Data : "+data);
+              if (err) return console.error(err);
+              //done(null , data);
+              data._id = id;
+              return res.send(data);
+            });
+
+        }
+      
+      return found;
+    });
+});
 
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
