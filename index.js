@@ -88,6 +88,12 @@ app.post('/api/users', function(req, res) {
   });
 });
 
+app.get('/api/users', function(req, res){
+  User.find({}, function (err, found) {
+    if (err) return console.log(err);
+    return res.send(found);
+  });
+});
 
 
 
