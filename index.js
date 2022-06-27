@@ -115,7 +115,11 @@ app.post('/api/users/:_id/exercises', function(req, res) {
   let id  = req.params._id; //route parameter for user
   let un; //username
 
-  if (dt==undefined || dt=='') dt=(new Date).toDateString();
+  if (dt==undefined || dt=='') {
+    dt=(new Date).toDateString();
+  } else {
+    dt=(new Date(dt)).toDateString();
+  }
 
   //resolving username from _id
     User.findOne( {"_id": id}, function (err, found) {
@@ -144,7 +148,11 @@ app.post('/api/users/:_id/exercises', function(req, res) {
               console.log("save Data : "+data);
               if (err) return console.error(err);
               //done(null , data);
-              data._id = id;
+
+              //Prepare returning OBJECT:
+              data._id = id; // change for User._id (not Exercise._id)
+              data.__v = undefined; //delete
+              
               return res.send(data);
             });
 
