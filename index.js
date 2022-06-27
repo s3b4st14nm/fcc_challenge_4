@@ -52,6 +52,7 @@ let userSchema = new mongoose.Schema({
 let User = new mongoose.model('User', userSchema);
 
 //--
+/*
 let logSchema = new mongoose.Schema({
   username:     String,
   count:        Number,
@@ -63,6 +64,7 @@ let logSchema = new mongoose.Schema({
 });
 
 let Log = new mongoose.model('Log', logSchema);
+*/
 //END @@@ Schema-Model---------------------------
 
 //Routes
@@ -152,6 +154,42 @@ app.post('/api/users/:_id/exercises', function(req, res) {
     });
 });
 
+//Logs
+app.get('/api/users/:_id/logs', function(req, res){
+  let id  = req.params._id; //route parameter for user
+  let rs  = {};
+
+  console.log(' ');
+  console.log('@GET /api/users/:_id/logs ~ _id='+id);
+  
+  User.find({"_id": id}, function (err, found) {
+    if (err) {
+      return console.log(err);
+    } else {
+
+      //console.log(found);
+      rs = {
+        "username" : found[0]["username"], 
+        "_id": id 
+      };
+      console.log(rs);
+      
+      Exercise.find(
+        {"username" : found[0]["username"]}, 
+        {description:1, duration:1, date:1, _id:0},
+        function(err, f) {
+            if (err) return console.log(err);
+            
+            rs["count"] = f.length;
+            rs["log"] = f;
+    
+            console.log(rs);
+            return res.send(rs);
+      });
+      
+    }
+  });
+});
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
